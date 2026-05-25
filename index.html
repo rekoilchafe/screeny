@@ -3,89 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edgeless Screenplay Studio</title>
+    <title>Glassmorphism Screenplay Studio</title>
     <style>
         :root {
-            --bg-color: #f4f4f5;
-            --panel-bg: #ffffff;
-            --text-main: #1f2937;
-            --accent: #3b82f6;
-            --border: #e5e7eb;
+            /* Glassmorphism Variables */
+            --glass-bg: rgba(255, 255, 255, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --blur: blur(24px);
+            
+            /* Typography */
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-script: "Courier Prime", "Courier New", Courier, monospace;
+            --text-main: #1d1d1f;
+            --text-muted: #515154;
+            --accent: #007aff; /* iOS Blue */
         }
-        * { box-sizing: border-box; font-family: 'Courier New', Courier, monospace; }
-        body { margin: 0; display: flex; height: 100vh; background: var(--bg-color); color: var(--text-main); overflow: hidden; }
-        
-        /* Toolbar */
+
+        * { box-sizing: border-box; }
+
+        body { 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            padding: 80px 20px 20px 20px; /* Padding for floating toolbar */
+            gap: 20px;
+            color: var(--text-main); 
+            overflow: hidden; 
+            font-family: var(--font-ui);
+            
+            /* Vibrant Animated Mesh Gradient Background */
+            background: linear-gradient(-45deg, #fbc2eb, #a6c1ee, #fccb90, #d57eeb);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glass Panel Utility Class */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            border-radius: 20px;
+        }
+
+        /* ------------------------------------------
+           UI Elements
+           ------------------------------------------ */
         #toolbar {
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            background: var(--panel-bg); padding: 10px 20px; border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 100;
-            display: flex; gap: 10px; font-family: sans-serif;
+            position: absolute; 
+            top: 20px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            padding: 10px 16px; 
+            display: flex; 
+            align-items: center;
+            gap: 12px; 
+            z-index: 100;
+            border-radius: 30px; /* Pill shape */
         }
-        button { cursor: pointer; padding: 6px 12px; border: 1px solid var(--border); background: white; border-radius: 4px; }
-        button:hover { background: var(--bg-color); }
-        
-        /* Screenplay Editor (Left) */
+
+        button { 
+            cursor: pointer; 
+            padding: 8px 16px; 
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid var(--glass-border); 
+            border-radius: 20px; 
+            font-family: var(--font-ui);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button:hover { 
+            background: rgba(255, 255, 255, 0.8); 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .toolbar-hint {
+            font-size: 12px; 
+            color: var(--text-muted);
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        /* ------------------------------------------
+           Editor (Left Panel)
+           ------------------------------------------ */
         #editor-panel {
-            width: 40%; min-width: 400px; background: var(--panel-bg);
-            border-right: 2px solid var(--border); display: flex; flex-direction: column;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 10;
+            width: 45%; 
+            min-width: 400px; 
+            display: flex; 
+            flex-direction: column;
+            z-index: 10;
+            overflow: hidden;
         }
+
         #editor {
-            flex: 1; padding: 40px; overflow-y: auto; outline: none; font-size: 16px; line-height: 1.2;
+            flex: 1; 
+            padding: 60px; 
+            overflow-y: auto; 
+            outline: none; 
+            font-family: var(--font-script);
+            font-size: 16px; 
+            line-height: 1.3;
+            /* Inner glass slightly more opaque for readability */
+            background: rgba(255, 255, 255, 0.3);
         }
-        
+
+        /* Custom Scrollbar for macOS look */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+
         /* Screenplay Formatting Classes */
-        .scene-heading { text-transform: uppercase; font-weight: bold; margin-top: 20px; }
-        .action { margin-top: 10px; }
-        .character { text-transform: uppercase; margin-left: 150px; margin-top: 15px; margin-bottom: 0;}
+        .scene-heading { text-transform: uppercase; font-weight: bold; margin-top: 24px; }
+        .action { margin-top: 12px; }
+        .character { text-transform: uppercase; margin-left: 150px; margin-top: 18px; margin-bottom: 0;}
         .dialogue { margin-left: 100px; margin-right: 100px; margin-top: 0; }
         .parenthetical { margin-left: 125px; margin-top: 0; margin-bottom: 0;}
 
-        /* Canvas (Right) */
+        /* ------------------------------------------
+           Canvas (Right Panel)
+           ------------------------------------------ */
         #canvas-panel {
-            flex: 1; position: relative; overflow: hidden; background: #e5e5f7;
-            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-            background-size: 20px 20px;
+            flex: 1; 
+            position: relative; 
+            overflow: hidden; 
         }
+
         #canvas-content {
-            width: 5000px; height: 5000px; position: absolute; transform-origin: 0 0;
+            width: 5000px; 
+            height: 5000px; 
+            position: absolute; 
+            transform-origin: 0 0;
+            /* Subtle dot grid tailored for glass */
+            background-image: radial-gradient(rgba(0,0,0,0.1) 1px, transparent 1px);
+            background-size: 24px 24px;
         }
         
-        /* Draggable Nodes */
+        /* Draggable Nodes (Glassmorphic Cards) */
         .node {
-            position: absolute; width: 200px; background: #feff9c; border: 1px solid #e0e08a;
-            padding: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); cursor: grab; font-family: sans-serif;
+            position: absolute; 
+            width: 240px; 
+            padding: 16px; 
+            cursor: grab; 
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: box-shadow 0.2s;
         }
-        .node:active { cursor: grabbing; }
-        .node-header { font-weight: bold; margin-bottom: 5px; pointer-events: none; }
-        .node-body { font-size: 14px; outline: none; background: transparent; border: none; width: 100%; resize: none; pointer-events: auto;}
+
+        .node:active { 
+            cursor: grabbing; 
+            box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+        }
+
+        .node-header { 
+            font-weight: 600; 
+            font-size: 15px;
+            pointer-events: none; 
+            color: var(--text-main);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding-bottom: 8px;
+        }
+
+        .node-body { 
+            font-family: var(--font-ui);
+            font-size: 14px; 
+            color: var(--text-muted);
+            outline: none; 
+            background: transparent; 
+            border: none; 
+            width: 100%; 
+            resize: none; 
+            pointer-events: auto;
+            line-height: 1.4;
+        }
         
+        .node-body::placeholder { color: rgba(0,0,0,0.3); }
+
         /* SVG Connections */
         #svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        line { stroke: #94a3b8; stroke-width: 2; border-radius: 5px; }
+        line { stroke: rgba(255,255,255,0.8); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+
     </style>
 </head>
 <body>
 
-    <div id="toolbar">
-        <button onclick="saveToFile()">💾 Save (.json)</button>
-        <button onclick="document.getElementById('fileInput').click()">📂 Load (.json)</button>
+    <div id="toolbar" class="glass">
+        <button onclick="saveToFile()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            Save
+        </button>
+        <button onclick="document.getElementById('fileInput').click()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Load
+        </button>
         <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadFromFile(event)">
-        <button onclick="addNode()">➕ Add Scene Card</button>
-        <span style="font-size: 12px; margin-top: 6px; color: #666;">(Editor: Tab = Character, Enter = Reset)</span>
+        
+        <div style="width: 1px; height: 20px; background: rgba(0,0,0,0.1); margin: 0 4px;"></div>
+        
+        <button onclick="addNode()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Scene Card
+        </button>
+        <span class="toolbar-hint">Tab: Character / Enter: Auto-format</span>
     </div>
 
-    <div id="editor-panel">
+    <div id="editor-panel" class="glass">
         <div id="editor" contenteditable="true">
-            <div class="scene-heading">INT. GARAGE - DAY</div>
-            <div class="action">A messy garage. Wires are everywhere.</div>
-            <div class="character">WRITER</div>
-            <div class="dialogue">This is where the magic happens.</div>
+            <div class="scene-heading">INT. APPLE PARK - DAY</div>
+            <div class="action">Sunlight streams through curved glass. A DEVELOPER stares at a glowing screen, marveling at the gradients.</div>
+            <div class="character">DEVELOPER</div>
+            <div class="dialogue">This glassmorphism looks incredibly sleek. The blur effect is perfect.</div>
+            <div class="action">They drag a scene card across the infinite canvas.</div>
         </div>
     </div>
 
-    <div id="canvas-panel">
+    <div id="canvas-panel" class="glass">
         <div id="canvas-content">
             <svg id="svg-layer"></svg>
             </div>
@@ -103,7 +256,6 @@
                 let selection = window.getSelection();
                 let parentBlock = selection.anchorNode.nodeType === 3 ? selection.anchorNode.parentNode : selection.anchorNode;
                 
-                // Toggle between Action, Character, and Dialogue based on current state
                 if (parentBlock.className === 'action' || !parentBlock.className) {
                     parentBlock.className = 'character';
                 } else if (parentBlock.className === 'character') {
@@ -117,21 +269,18 @@
                 let parentBlock = selection.anchorNode.nodeType === 3 ? selection.anchorNode.parentNode : selection.anchorNode;
                 
                 let newBlock = document.createElement('div');
-                newBlock.innerHTML = '<br>'; // Empty block for typing
+                newBlock.innerHTML = '<br>';
                 
-                // Smart Formatting Rules
                 if (parentBlock.className === 'character' || parentBlock.className === 'parenthetical') {
-                    newBlock.className = 'dialogue'; // Enter after character = dialogue
+                    newBlock.className = 'dialogue'; 
                 } else if (parentBlock.className === 'dialogue') {
-                    newBlock.className = 'action'; // Enter after dialogue = back to action
+                    newBlock.className = 'action'; 
                 } else {
-                    newBlock.className = 'action'; // Default
+                    newBlock.className = 'action'; 
                 }
                 
-                // Insert new block
                 parentBlock.parentNode.insertBefore(newBlock, parentBlock.nextSibling);
                 
-                // Move cursor
                 let range = document.createRange();
                 range.setStart(newBlock, 0);
                 range.collapse(true);
@@ -140,7 +289,6 @@
             }
         });
 
-        // Basic auto-detect for Scene Headings (typing INT. or EXT.)
         editor.addEventListener('input', function(e) {
             let selection = window.getSelection();
             let parentBlock = selection.anchorNode.nodeType === 3 ? selection.anchorNode.parentNode : selection.anchorNode;
@@ -155,28 +303,31 @@
            2. CANVAS & MINDMAPPING LOGIC
            ========================================== */
         const canvasContent = document.getElementById('canvas-content');
-        const canvasPanel = document.getElementById('canvas-panel');
         let nodesData = [];
         let isDragging = false;
         let dragNode = null;
         let offsetX, offsetY;
+        let sceneCounter = 1;
 
-        function addNode(x = 100, y = 100, title = "New Scene", text = "Notes here...") {
+        function addNode(x = 100, y = 100, title = null, text = "") {
             const id = 'node-' + Date.now();
+            const nodeTitle = title || `Scene ${sceneCounter++}`;
             const node = document.createElement('div');
-            node.className = 'node';
+            
+            // Apply iOS Glass styling to the node itself
+            node.className = 'node glass';
             node.id = id;
             node.style.left = x + 'px';
             node.style.top = y + 'px';
             
             node.innerHTML = `
-                <div class="node-header">${title}</div>
-                <textarea class="node-body" rows="4">${text}</textarea>
+                <div class="node-header" contenteditable="true" style="pointer-events: auto;">${nodeTitle}</div>
+                <textarea class="node-body" rows="4" placeholder="Jot down scene ideas here...">${text}</textarea>
             `;
             
             // Dragging events
             node.addEventListener('mousedown', (e) => {
-                if(e.target.tagName === 'TEXTAREA') return; // Don't drag if typing
+                if(e.target.tagName === 'TEXTAREA' || e.target.className === 'node-header') return; 
                 isDragging = true;
                 dragNode = node;
                 offsetX = e.clientX - node.getBoundingClientRect().left;
@@ -185,10 +336,9 @@
             });
 
             canvasContent.appendChild(node);
-            nodesData.push({ id, x, y, title, text });
+            nodesData.push({ id, x, y, title: nodeTitle, text });
         }
 
-        // Handle dropping
         document.addEventListener('mousemove', (e) => {
             if (!isDragging || !dragNode) return;
             const canvasRect = canvasContent.getBoundingClientRect();
@@ -202,12 +352,12 @@
         document.addEventListener('mouseup', () => {
             if (dragNode) {
                 dragNode.style.zIndex = 1;
-                // Update internal state
                 let nodeObj = nodesData.find(n => n.id === dragNode.id);
                 if(nodeObj) {
                     nodeObj.x = parseInt(dragNode.style.left);
                     nodeObj.y = parseInt(dragNode.style.top);
                     nodeObj.text = dragNode.querySelector('.node-body').value;
+                    nodeObj.title = dragNode.querySelector('.node-header').innerText;
                 }
             }
             isDragging = false;
@@ -218,15 +368,18 @@
            3. LOCAL SAVE & LOAD (FILE API)
            ========================================== */
         function saveToFile() {
-            // Update node data before saving
             document.querySelectorAll('.node').forEach(el => {
                 let nodeObj = nodesData.find(n => n.id === el.id);
-                if(nodeObj) nodeObj.text = el.querySelector('.node-body').value;
+                if(nodeObj) {
+                    nodeObj.text = el.querySelector('.node-body').value;
+                    nodeObj.title = el.querySelector('.node-header').innerText;
+                }
             });
 
             const payload = {
                 editorHTML: editor.innerHTML,
-                canvasNodes: nodesData
+                canvasNodes: nodesData,
+                counter: sceneCounter
             };
 
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
@@ -247,22 +400,25 @@
                 const contents = e.target.result;
                 const payload = JSON.parse(contents);
                 
-                // Restore Editor
                 editor.innerHTML = payload.editorHTML;
+                sceneCounter = payload.counter || 1;
                 
-                // Restore Canvas
-                document.querySelectorAll('.node').forEach(n => n.remove()); // Clear canvas
-                nodesData = []; // Clear state
+                document.querySelectorAll('.node').forEach(n => n.remove()); 
+                nodesData = []; 
                 
                 payload.canvasNodes.forEach(n => {
                     addNode(n.x, n.y, n.title, n.text);
                 });
             };
             reader.readAsText(file);
+            
+            // Reset input so the same file can be loaded again if needed
+            event.target.value = '';
         }
 
-        // Initialize with one card
-        addNode(100, 100, "Scene 1", "Writer types code.");
+        // Initialize with default cards
+        addNode(80, 80, "Act I: Setup", "Establish the modern design language and character motivations.");
+        addNode(380, 150, "Inciting Incident", "The Developer discovers the backdrop-filter property.");
     </script>
 </body>
 </html>
