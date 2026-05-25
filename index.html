@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edgeless Screenplay Studio</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f5;
+            --panel-bg: #ffffff;
+            --text-main: #1f2937;
+            --accent: #3b82f6;
+            --border: #e5e7eb;
+        }
+        * { box-sizing: border-box; font-family: 'Courier New', Courier, monospace; }
+        body { margin: 0; display: flex; height: 100vh; background: var(--bg-color); color: var(--text-main); overflow: hidden; }
+        
+        /* Toolbar */
+        #toolbar {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            background: var(--panel-bg); padding: 10px 20px; border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 100;
+            display: flex; gap: 10px; font-family: sans-serif;
+        }
+        button { cursor: pointer; padding: 6px 12px; border: 1px solid var(--border); background: white; border-radius: 4px; }
+        button:hover { background: var(--bg-color); }
+        
+        /* Screenplay Editor (Left) */
+        #editor-panel {
+            width: 40%; min-width: 400px; background: var(--panel-bg);
+            border-right: 2px solid var(--border); display: flex; flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 10;
+        }
+        #editor {
+            flex: 1; padding: 40px; overflow-y: auto; outline: none; font-size: 16px; line-height: 1.2;
+        }
+        
+        /* Screenplay Formatting Classes */
+        .scene-heading { text-transform: uppercase; font-weight: bold; margin-top: 20px; }
+        .action { margin-top: 10px; }
+        .character { text-transform: uppercase; margin-left: 150px; margin-top: 15px; margin-bottom: 0;}
+        .dialogue { margin-left: 100px; margin-right: 100px; margin-top: 0; }
+        .parenthetical { margin-left: 125px; margin-top: 0; margin-bottom: 0;}
+
+        /* Canvas (Right) */
+        #canvas-panel {
+            flex: 1; position: relative; overflow: hidden; background: #e5e5f7;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        #canvas-content {
+            width: 5000px; height: 5000px; position: absolute; transform-origin: 0 0;
+        }
+        
+        /* Draggable Nodes */
+        .node {
+            position: absolute; width: 200px; background: #feff9c; border: 1px solid #e0e08a;
+            padding: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); cursor: grab; font-family: sans-serif;
+        }
+        .node:active { cursor: grabbing; }
+        .node-header { font-weight: bold; margin-bottom: 5px; pointer-events: none; }
+        .node-body { font-size: 14px; outline: none; background: transparent; border: none; width: 100%; resize: none; pointer-events: auto;}
+        
+        /* SVG Connections */
+        #svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        line { stroke: #94a3b8; stroke-width: 2; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="toolbar">
+        <button onclick="saveToFile()">💾 Save (.json)</button>
+        <button onclick="document.getElementById('fileInput').click()">📂 Load (.json)</button>
+        <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadFromFile(event)">
+        <button onclick="addNode()">➕ Add Scene Card</button>
+        <span style="font-size: 12px; margin-top: 6px; color: #666;">(Editor: Tab = Character, Enter = Reset)</span>
+    </div>
+
+    <div id="editor-panel">
+        <div id="editor" contenteditable="true">
+            <div class="scene-heading">INT. GARAGE - DAY</div>
+            <div class="action">A messy garage. Wires are everywhere.</div>
+            <div class="character">WRITER</div>
+            <div class="dialogue">This is where the magic happens.</div>
+        </div>
+    </div>
+
+    <div id="canvas-panel">
+        <div id="canvas-content">
+            <svg id="svg-layer"></svg>
+            </div>
+    </div>
+
+    <script>
+        /* ==========================================
+           1. SCREENPLAY EDITOR LOGIC
+           ========================================== */
+        const editor = document.getElementById('editor');
+
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                let selection = window.getSelection();
+                let parentBlock = selection.anchorNode.nodeType === 3 ? selection.anchorNode.parentNode : selection.anchorNode;
+                
+                // Toggle between Action, Character, and Dialogue based on current state
+                if (parentBlock.className === 'action' || !parentBlock.className) {
+                    parentBlock.className = 'character';
+                } else if (parentBlock.className === 'character') {
+                    parentBlock.className = 'parenthetical';
+                }
+            }
+            
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                let selection = window.getSelection();
+                let parentBlock = selection.anchorNode.nodeType === 3 ? selection.anchorNode.parentNode : selection.anchorNode;
+                
+                let newBlock = document.createElement('div');
+                newBlock.innerHTML = '<br>'; // Empty block for typing
+                
+                // Smart Formatting Rules
+                if (parentBlock.className === 'character' || parentBlock.className === 'parenthetical') {
+                    newBlock.className = 'dialogue'; // Enter after character = dialogue
+                } else if (parentBlock.className === 'dialogue') {
+                    newBlock.className = 'action'; // Enter after dialogue = back to action
+                } else {
+                    newBlock.className = 'action'; // Default
+                }
+                
+                // Insert new block
+                parentBlock.parentNode.insertBefore(newBlock, parentBlock.nextSibling);
+                
+                // Move cursor
+                let range = document.createRange();
+                range.setStart(newBlock, 0);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        });
+
+        // Basic auto-detect for Scene Headings (typing INT. or EXT.)
+        editor.addEventListener('input', function(e) {
+            let selection = window.getSelection();
+            let parentBlock = selection.anchorNode.nodeType === 3 ? selection.anchorNode.parentNode : selection.anchorNode;
+            let text = parentBlock.innerText || "";
+            
+            if (text.startsWith('INT.') || text.startsWith('EXT.')) {
+                parentBlock.className = 'scene-heading';
+            }
+        });
+
+        /* ==========================================
+           2. CANVAS & MINDMAPPING LOGIC
+           ========================================== */
+        const canvasContent = document.getElementById('canvas-content');
+        const canvasPanel = document.getElementById('canvas-panel');
+        let nodesData = [];
+        let isDragging = false;
+        let dragNode = null;
+        let offsetX, offsetY;
+
+        function addNode(x = 100, y = 100, title = "New Scene", text = "Notes here...") {
+            const id = 'node-' + Date.now();
+            const node = document.createElement('div');
+            node.className = 'node';
+            node.id = id;
+            node.style.left = x + 'px';
+            node.style.top = y + 'px';
+            
+            node.innerHTML = `
+                <div class="node-header">${title}</div>
+                <textarea class="node-body" rows="4">${text}</textarea>
+            `;
+            
+            // Dragging events
+            node.addEventListener('mousedown', (e) => {
+                if(e.target.tagName === 'TEXTAREA') return; // Don't drag if typing
+                isDragging = true;
+                dragNode = node;
+                offsetX = e.clientX - node.getBoundingClientRect().left;
+                offsetY = e.clientY - node.getBoundingClientRect().top;
+                node.style.zIndex = 1000;
+            });
+
+            canvasContent.appendChild(node);
+            nodesData.push({ id, x, y, title, text });
+        }
+
+        // Handle dropping
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging || !dragNode) return;
+            const canvasRect = canvasContent.getBoundingClientRect();
+            let newX = e.clientX - canvasRect.left - offsetX;
+            let newY = e.clientY - canvasRect.top - offsetY;
+            
+            dragNode.style.left = newX + 'px';
+            dragNode.style.top = newY + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (dragNode) {
+                dragNode.style.zIndex = 1;
+                // Update internal state
+                let nodeObj = nodesData.find(n => n.id === dragNode.id);
+                if(nodeObj) {
+                    nodeObj.x = parseInt(dragNode.style.left);
+                    nodeObj.y = parseInt(dragNode.style.top);
+                    nodeObj.text = dragNode.querySelector('.node-body').value;
+                }
+            }
+            isDragging = false;
+            dragNode = null;
+        });
+
+        /* ==========================================
+           3. LOCAL SAVE & LOAD (FILE API)
+           ========================================== */
+        function saveToFile() {
+            // Update node data before saving
+            document.querySelectorAll('.node').forEach(el => {
+                let nodeObj = nodesData.find(n => n.id === el.id);
+                if(nodeObj) nodeObj.text = el.querySelector('.node-body').value;
+            });
+
+            const payload = {
+                editorHTML: editor.innerHTML,
+                canvasNodes: nodesData
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "screenplay_project.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function loadFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                const payload = JSON.parse(contents);
+                
+                // Restore Editor
+                editor.innerHTML = payload.editorHTML;
+                
+                // Restore Canvas
+                document.querySelectorAll('.node').forEach(n => n.remove()); // Clear canvas
+                nodesData = []; // Clear state
+                
+                payload.canvasNodes.forEach(n => {
+                    addNode(n.x, n.y, n.title, n.text);
+                });
+            };
+            reader.readAsText(file);
+        }
+
+        // Initialize with one card
+        addNode(100, 100, "Scene 1", "Writer types code.");
+    </script>
+</body>
+</html>
